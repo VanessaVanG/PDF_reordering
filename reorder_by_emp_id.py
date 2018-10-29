@@ -9,7 +9,7 @@ from pdfminer.pdfpage import PDFPage
 from PyPDF2 import PdfFileReader, PdfFileWriter
 
 report_path = r'example_punch.pdf'
-sorted_report_path = r'sorted_report.pdf'
+sorted_report_path = r'emp_sorted_report.pdf'
 
 def convert_pdf_to_txt(path):
     rsrcmgr = PDFResourceManager()
@@ -61,8 +61,23 @@ df = pd.DataFrame({'Emp_ID': ids})
 #extract the numbers
 df['Emp_ID'] = df['Emp_ID'].str.extract(r'(\d+)').astype(int)
 
-#add the report page
-df = df.append({'Emp_ID': 0}, ignore_index=True)
+#get the number of pages of employee timesheets
+emp_pages = len(df)
+
+#get the total number of pages
+with open(report_path, 'rb') as infile:
+    reader = PdfFileReader(infile)
+    total_pages = reader.getNumPages()
+
+#calculate the report page length
+report_pages = total_pages - emp_pages
+
+#add the report page(s)
+rep_length = report_pages
+while rep_length:
+    place = 0 - rep_length
+    df = df.append({'Emp_ID': place}, ignore_index=True)
+    rep_length -= 1
 
 #sort by emp id
 df.sort_values(by=['Emp_ID'], inplace=True)
@@ -70,7 +85,7 @@ df.sort_values(by=['Emp_ID'], inplace=True)
 #put the index into a list
 page_order = df.index.tolist()
 
-#reorder the pages to a new pdf
+#reorder pages into a new pdf
 writer = PdfFileWriter()
 with open(report_path, 'rb') as infile:
     
