@@ -63,8 +63,23 @@ emp_id_df = pd.DataFrame({'Emp_ID': ids})
 #extract the numbers
 emp_id_df['Emp_ID'] = emp_id_df['Emp_ID'].str.extract(r'(\d+)').astype(int)
 
-#add the report page
-emp_id_df = emp_id_df.append({'Emp_ID': 0}, ignore_index=True)
+#get the number of pages of employee timesheets
+emp_pages = len(emp_id_df)
+
+#get the total number of pages
+with open(report_path, 'rb') as infile:
+    reader = PdfFileReader(infile)
+    total_pages = reader.getNumPages()
+
+#calculate the report page length
+report_pages = total_pages - emp_pages
+
+#add the report page(s)
+rep_length = report_pages
+while rep_length:
+    place = 0 - rep_length
+    emp_id_df = emp_id_df.append({'Emp_ID': place}, ignore_index=True)
+    rep_length -= 1
 
 #read mapping csv to a df
 mapping_df = pd.read_csv(mapping_path)
@@ -85,7 +100,10 @@ combo_df['Sort_Key'] = combo_df['Sort_Key'].str.replace('-', '', regex=False)
 combo_df['Sort_Key'] = pd.to_numeric(combo_df['Sort_Key'], errors='coerce')
 
 #change it so the report will come first in the df
-combo_df.loc[combo_df.Emp_ID == 0, 'Sort_Key'] = 0
+while report_pages:
+    place = 0 - report_pages
+    combo_df.loc[combo_df.Emp_ID == place, 'Sort_Key'] = place
+    report_pages -= 1
 
 #sort by Sort_Key then Emp_ID
 combo_df.sort_values(by=['Sort_Key', 'Emp_ID'], inplace=True)
